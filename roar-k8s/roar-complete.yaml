@@ -18,7 +18,7 @@ spec:
         app: roar-web
     spec:
       containers:
-      - image: quay.io/bclaster/roar-web:1.10.1
+      - image: quay.io/bclaster/roar-web:1.0.1
         imagePullPolicy: Always
         name: roar-web
         ports:
@@ -64,17 +64,28 @@ spec:
         name: mysql
     spec:
       containers:
-      - name: mysql
+      - env:
+          - name: MYSQL_DATABASE
+            valueFrom:
+              configMapKeyRef:
+                name: mysql-configmap
+                key: mysql.database
+          - name: MYSQL_PASSWORD
+            valueFrom: 
+              secretKeyRef:
+                name: mysqlsecret
+                key: mysqlpassword
+          - name: MYSQL_ROOT_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mysqlsecret
+                key: mysqlrootpassword
+          - name: MYSQL_USER
+            valueFrom:
+              configMapKeyRef:
+                name: mysql-configmap
+                key: mysql.user
         image: quay.io/techupskills/roar-db:v2
-        env:
-        - name: MYSQL_DATABASE
-          value: registry
-        - name: MYSQL_PASSWORD
-          value: admin
-        - name: MYSQL_ROOT_PASSWORD
-          value: root+1
-        - name: MYSQL_USER
-          value: admin
         imagePullPolicy: Always
         name: mysql
         ports:
@@ -94,6 +105,13 @@ spec:
             - --version  
           failureThreshold: 3
           initialDelaySeconds: 5     
+        volumeMounts:
+        - mountPath: /var/lib/mysql
+          name: mysql-pv-claim
+      volumes:
+      - name: mysql-pv-claim
+        persistentVolumeClaim:
+          claimName: mysql-pv-claim
 ---
 apiVersion: v1
 kind: Service
@@ -107,5 +125,5 @@ spec:
     port: 3306
     targetPort: 3306
   selector:
-    name: roar-db
+    app: roar-db
 
